@@ -29,56 +29,41 @@
 
 
 <hr>
+<form action="{% url 'add_cart' product.id %}" method="POST">
+	{% csrf_token %}
 	<div class="row">
+		{% if product.variation_set.all %}
 		<div class="item-option-select">
 			<h6>Choose Color</h6>
-			<div class="btn-group btn-group-sm btn-group-toggle" data-toggle="buttons">
-			  <label class="btn btn-light">
-			    <input type="radio" name="radio_color"> Silver
-			  </label>
-			  <label class="btn btn-light">
-			    <input type="radio" name="radio_color" > Gray
-			  </label>
-			  <label class="btn btn-light active">
-			    <input type="radio" name="radio_color checked"> Gold
-			  </label>
-			  <label class="btn btn-light">
-			    <input type="radio" name="radio_color"> Black
-			  </label>
-			</div> 
+			<select class="form-control" name="color" required>
+				<option value="" selected>Select Color</option>
+				{% for color in product.variation_set.colors %}
+					<option value="{{color.category_value}}">{{color.category_value | capfirst }}</option>
+				{% endfor %}
+			</select>
 		</div>
 	</div> <!-- row.// -->
 	<div class="row">
 		<div class="item-option-select">
 			<h6>Select Size</h6>
-			<div class="btn-group btn-group-sm btn-group-toggle" data-toggle="buttons">
-			  <label class="btn btn-light">
-			    <input type="radio" name="radio_color"> S
-			  </label>
-			  <label class="btn btn-light active">
-			    <input type="radio" name="radio_color" checked> M
-			  </label>
-			  <label class="btn btn-light">
-			    <input type="radio" name="radio_color"> L
-			  </label>
-			  <label class="btn btn-light">
-			    <input type="radio" name="radio_color"> XL
-			  </label>
-			</div> 
+			<select class="form-control" name="size" required>
+				<option value="" selected>Select Size</option>
+				{% for size in product.variation_set.sizes %}
+					<option value="{{size.category_value}}">{{size.category_value}}</option>
+				{% endfor %}
+
+			</select>
 		</div>
+		{% endif %}
 	</div> <!-- row.// -->
 	<hr>
     {% if product.stock <= 0 %}
 	<h5 class='text-danger'>This product is currently not available</h5>
     {% else %}
-	{% if in_cart %}
-	<a href="{% url 'cart_view' %}" class="btn  btn-success"> <span class="text">Added in cart</span> <i class="fas fa-check"></i></a>
-	<a href="{% url 'cart_view' %}" class="btn  btn-info"> <span class="text">View Cart</span> <i class="fas fa-eye"></i>  </a>
-	{% else %}
-	<a href="{% url 'add_cart' product.id %}" class="btn  btn-primary"> <span class="text">Add to cart</span> <i class="fas fa-shopping-cart"></i>  </a>
+	<button class="btn  btn-primary" type="submit"> <span class="text">Add to cart</span> <i class="fas fa-shopping-cart"></i>  </button>
     {% endif %}
-    {% endif %}
-    
+
+</form>    
 </article> <!-- product-info-aside .// -->
 		</main> <!-- col.// -->
 	</div> <!-- row.// -->

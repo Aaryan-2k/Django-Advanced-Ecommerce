@@ -31,7 +31,13 @@
 			<div class="aside"><img src="{{item.product.image.url}}" class="img-sm"></div>
 			<figcaption class="info">
 				<a href="{% url 'product_detail' item.product.category.slug item.product.slug %}" class="title text-dark">{{item.product.product_name}}</a>
-				<p class="text-muted small">Matrix: 25 Mpx <br> Brand: Canon</p>
+				{% if item.variation.all %}
+				<p class="text-muted small">
+					{% for var in item.variation.all %}
+					{{var.category | capfirst }} : {{var.category_value | capfirst}} <br>
+					{% endfor %}
+				</p>
+				{% endif %}
 			</figcaption>
 		</figure>
 	</td>
@@ -39,11 +45,11 @@
 					<div class="col"> 
 						<div class="input-group input-spinner">
 							<div class="input-group-prepend">
-							<a href="{% url 'quantity_decrease' item.product.id %}"> <button class="btn btn-light" type="button" id="button-plus"> <i class="fa fa-minus"></i> </button></a>
+							<a href="{% url 'quantity_decrease' item.id %}"> <button class="btn btn-light" type="button" id="button-plus"> <i class="fa fa-minus"></i> </button></a>
 							</div>
 							<input type="text" class="form-control"  value="{{item.quantity}}">
 							<div class="input-group-append">
-							<a href="{% url 'add_cart' item.product.id %}"><button class="btn btn-light" type="button" id="button-minus"> <i class="fa fa-plus"></i> </button></a>
+							<a href="{% url 'quantity_increase' item.id %}"><button class="btn btn-light" type="button" id="button-minus"> <i class="fa fa-plus"></i> </button></a>
 							</div>
 						</div> <!-- input-group.// -->
 					</div> <!-- col.// -->
@@ -55,7 +61,7 @@
 		</div> <!-- price-wrap .// -->
 	</td>
 	<td class="text-right"> 
-	<a href="{% url 'remove_cart' item.product.id %}" class="btn btn-danger"> Remove</a>
+	<a href="{% url 'remove_cart' item.id %}" class="btn btn-danger"> Remove</a>
 	</td>
 </tr>
 {% endfor %}
