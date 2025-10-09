@@ -4,9 +4,10 @@ from store.models import Product,Variation
 
 # Create your views here.
 def get_cart(request):
-    session_id=request.session.session_key
+    session_id = request.session.session_key
     if not session_id:
-        session_id=request.session.create()
+        request.session.create()
+        session_id = request.session.session_key
     try:
         cart=Cart.objects.get(cart_id=session_id)
     except Cart.DoesNotExist:
