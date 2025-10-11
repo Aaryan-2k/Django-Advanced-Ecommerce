@@ -107,10 +107,10 @@ $(document).ready(function() {
 					<div class="widget-header">
 						<small class="title text-muted">Welcome {% if user.is_authenticated %}{{user.first_name}} {% else %}guest! {% endif %}</small>
 						<div>{% if user.is_authenticated %} 
-							<a href="#"></a>Dashboard <span class="dark-transp"> | </span>
+							<a href="{% url 'dashboard_route' %}">Dashboard</a> <span class="dark-transp"> | </span>
 							<a href="{% url 'logout_route' %}"> Logout</a>
 							{% else %}
-							<a href="{% url 'login_route '}">Sign in</a> <span class="dark-transp"> | </span>
+							<a href="{% url 'login_route' %}">Sign in</a> <span class="dark-transp"> | </span>
 							<a href="{% url 'register_route' %}"> Register</a>
 							{% endif %}
 						</div>
