@@ -135,3 +135,11 @@ MEDIA_ROOT=BASE_DIR/"media"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# smail configuration
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_PORT=587
+EMAIL_HOST_USER='aaryantyagi17@gmail.com'
+EMAIL_HOST_PASSWORD='kiyx rtmr rdtu umla'
+EMAIL_USE_TLS=True
