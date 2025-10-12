@@ -16,8 +16,10 @@ def get_cart(request):
 
 def add_cart(request,product_id):
     product_to_add=get_object_or_404(Product,id=product_id)
-    cart=get_cart(request)
-
+    if request.user.is_authenticated:
+        cart=Cart.objects.get(user=request.user)
+    else:
+        cart=get_cart(request)
     product_variantion=[]
     for key in request.POST:
         value=request.POST.get(key)
@@ -40,15 +42,21 @@ def add_cart(request,product_id):
         if added_to_cart==False:
             item=CartItem.objects.create(product=product_to_add, cart=cart, quantity=1)
             item.variation.add(*product_variantion)
+            item.save()
+
     else:
         item=CartItem.objects.create(product=product_to_add, cart=cart, quantity=1)
         item.variation.add(*product_variantion)
+        item.save()
     return redirect('/cart')
 
 def cart(request):
     tax=0
     total_price=0
-    cart=get_cart(request)
+    if request.user.is_authenticated:
+        cart=Cart.objects.get(user=request.user)
+    else:
+        cart=get_cart(request)
     try:
         items=CartItem.objects.filter(cart=cart)
     except CartItem.DoesNotExist as e:
@@ -90,3 +98,23 @@ def quantity_decrease(request,item_id):
     else:
         item_to_decrease.delete()
     return redirect('/cart')
+
+def checkout(request):
+    tax=0
+    total_price=0
+    if request.user.is_authenticated:
+        cart=Cart.objects.get(user=request.user)
+    else:
+        cart=get_cart(request)
+    try:
+        items=CartItem.objects.filter(cart=cart)
+    except CartItem.DoesNotExist as e:
+        print(e)
+        items={}
+    for i in items:
+        total_price+=(i.quantity*i.product.price)
+    
+    tax=(2*total_price)/100
+    grand_total=tax+total_price
+    return render(request, 'store/checkout.html', {'items':items,'grand_total':grand_total, 'total_price':total_price,'tax':tax})
+

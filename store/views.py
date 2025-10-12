@@ -43,5 +43,4 @@ def search(request):
     paginator=Paginator(products,6)
     page=request.GET.get('page')
     paged_products=paginator.get_page(page)
-
     return render(request,'store/store.html', {'products':paged_products})

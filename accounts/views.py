@@ -14,6 +14,11 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMessage
 
 
+#assigning items from guest cart to user cart.
+from cart.views import get_cart
+from cart.models import CartItem,Cart
+
+
 # Create your views here.
 def login(request):
     if request.method=='POST':
@@ -22,6 +27,30 @@ def login(request):
         user=auth.authenticate(email=email, password=password)
         print(user,email,password)
         if user is not None:
+            # gets the items from guest cart
+            cart_guest=get_cart(request)
+            try:
+                cart_user=Cart.objects.get(user=user)
+                items_guest=CartItem.objects.filter(cart=cart_guest)
+                items_user=CartItem.objects.filter(cart=cart_user)
+                for item_guest in items_guest:
+                    item_added_in_cart=False
+                    for item_user in items_user:
+                        if (item_guest.product==item_user.product) and (set(item_guest.variation.all())==set(item_user.variation.all())):
+                            print((set(item_guest.variation.all())))
+                            print(item_guest.variation.all())
+                            item_user.quantity+=item_guest.quantity
+                            item_user.save()
+                            item_added_in_cart=True
+                            break
+                    if item_added_in_cart==False:
+                        item_guest.cart=cart_user
+                        item_guest.save()
+                cart_guest.delete()
+            except Cart.DoesNotExist:
+                cart_guest.user=user
+                cart_guest.save()
+            # login
             auth.login(request,user)
             return redirect('home')
         else:
