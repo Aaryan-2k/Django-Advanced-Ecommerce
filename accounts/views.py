@@ -18,6 +18,9 @@ from django.core.mail import EmailMessage
 from cart.views import get_cart
 from cart.models import CartItem,Cart
 
+# keeping the user flow
+import requests
+
 
 # Create your views here.
 def login(request):
@@ -25,7 +28,6 @@ def login(request):
         email=request.POST['email']
         password=request.POST['password']
         user=auth.authenticate(email=email, password=password)
-        print(user,email,password)
         if user is not None:
             # gets the items from guest cart
             cart_guest=get_cart(request)
@@ -37,8 +39,6 @@ def login(request):
                     item_added_in_cart=False
                     for item_user in items_user:
                         if (item_guest.product==item_user.product) and (set(item_guest.variation.all())==set(item_user.variation.all())):
-                            print((set(item_guest.variation.all())))
-                            print(item_guest.variation.all())
                             item_user.quantity+=item_guest.quantity
                             item_user.save()
                             item_added_in_cart=True
@@ -46,13 +46,21 @@ def login(request):
                     if item_added_in_cart==False:
                         item_guest.cart=cart_user
                         item_guest.save()
-                cart_guest.delete()
+                cart_guest.delete() 
             except Cart.DoesNotExist:
                 cart_guest.user=user
                 cart_guest.save()
             # login
             auth.login(request,user)
-            return redirect('home')
+
+            url=request.META.get('HTTP_REFERER')
+            try:
+                query=requests.utils.urlparse(url).query
+                params=dict(x.split('=') for x in query.split('&'))
+                if 'next' in params:
+                    return redirect(params['next'])
+            except:
+                return redirect('home')
         else:
             messages.warning(request,'Invalid Credentials')
             return redirect('login_route')

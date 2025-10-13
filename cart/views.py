@@ -1,6 +1,7 @@
 from django.shortcuts import render,get_object_or_404, redirect
 from .models import Cart,CartItem
 from store.models import Product,Variation
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 def get_cart(request):
@@ -8,6 +9,12 @@ def get_cart(request):
     if not session_id:
         request.session.create()
         session_id = request.session.session_key
+    if request.user.is_authenticated:
+        try:
+            cart= Cart.objects.get(user=request.user)
+            return cart
+        except Cart.DoesNotExist:
+            return Cart.objects.create(user=request.user,cart_id=session_id)
     try:
         cart=Cart.objects.get(cart_id=session_id)
     except Cart.DoesNotExist:
@@ -16,10 +23,7 @@ def get_cart(request):
 
 def add_cart(request,product_id):
     product_to_add=get_object_or_404(Product,id=product_id)
-    if request.user.is_authenticated:
-        cart=Cart.objects.get(user=request.user)
-    else:
-        cart=get_cart(request)
+    cart=get_cart(request)
     product_variantion=[]
     for key in request.POST:
         value=request.POST.get(key)
@@ -28,7 +32,6 @@ def add_cart(request,product_id):
             product_variantion.append(variant)
         except Variation.DoesNotExist:
             pass
-
     product_in_cart=CartItem.objects.filter(product=product_to_add,cart=cart).exists()
     if product_in_cart:
         product_in_cart=CartItem.objects.filter(product=product_to_add,cart=cart)
@@ -53,10 +56,7 @@ def add_cart(request,product_id):
 def cart(request):
     tax=0
     total_price=0
-    if request.user.is_authenticated:
-        cart=Cart.objects.get(user=request.user)
-    else:
-        cart=get_cart(request)
+    cart=get_cart(request)
     try:
         items=CartItem.objects.filter(cart=cart)
     except CartItem.DoesNotExist as e:
@@ -91,7 +91,6 @@ def quantity_decrease(request,item_id):
         item_to_decrease=CartItem.objects.get(id=item_id)
     except:
         pass
-
     if item_to_decrease.quantity>1:
         item_to_decrease.quantity-=1  
         item_to_decrease.save()
@@ -99,21 +98,14 @@ def quantity_decrease(request,item_id):
         item_to_decrease.delete()
     return redirect('/cart')
 
+@login_required(login_url='login_route')
 def checkout(request):
     tax=0
     total_price=0
-    if request.user.is_authenticated:
-        cart=Cart.objects.get(user=request.user)
-    else:
-        cart=get_cart(request)
-    try:
-        items=CartItem.objects.filter(cart=cart)
-    except CartItem.DoesNotExist as e:
-        print(e)
-        items={}
+    cart=get_cart(request)
+    items=CartItem.objects.filter(cart=cart)
     for i in items:
         total_price+=(i.quantity*i.product.price)
-    
     tax=(2*total_price)/100
     grand_total=tax+total_price
     return render(request, 'store/checkout.html', {'items':items,'grand_total':grand_total, 'total_price':total_price,'tax':tax})
