@@ -6,9 +6,9 @@
 <div class="container">
     <form method="POST" action="{% url 'placeorder_route' %}">
         {% csrf_token %}
-	<div class="row">
-		<aside class="col-lg-7">
-			<div class="card">
+    <div class="row">
+        <aside class="col-lg-7">
+            <div class="card">
                 <div class="card-body">
                     <h4 class="card-title mb-4">Billing Address</h4>
 
@@ -59,12 +59,40 @@
                         </div>
                     
                 </div>
-            </div> <!-- card.// -->
+            </div> <div class="card mt-4"> 
+                <div class="card-body">
+                    <h4 class="card-title mb-4">Select Payment Method</h4>
+                    
+                    <div class="payment-methods-group">
+                        
+                        <div class="form-check border rounded p-3 d-flex align-items-center mb-3">
+                            <input class="form-check-input ml-1 mt-0" type="radio" name="payment_method" id="paypal" value="paypal" checked required>
+                            <label class="form-check-label w-100 d-flex justify-content-between align-items-center ml-4" for="paypal">
+                                <span class="font-weight-bold">Paypal</span>
+                                <img alt="Paypal Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhZ-sUbsjNHb2MZvWkStV4BEZ44-tt0jT26O9ddM2PnPVi_yFlIjF-NNvqkYpQH23Eu8_SpbljuzBCQRSj0AxvcV6i6tbQ9XCXtLyrqV6u4CdVnUHijJH-_kVo9XCVvcrjn3OEbnXcV0o4Om2xBPNdD9S3DVXjx8chNdFWbw_lYPGTOlFLCHfWvimABDNd5jmT8YHTTGKXXZMgS2gK2PufsBfeiXzYfxYmqn17qrxdxJttaWebiSiLHrjzB9iLSLhMvePZjDsWf3c" style="height: 24px;">
+                            </label>
+                        </div>
 
-        </aside> <!-- col.// -->
-<aside class="col-lg-5">
-	
-	<div class="card">
+                        <div class="form-check border rounded p-3 d-flex align-items-center mb-3">
+                            <input class="form-check-input ml-1 mt-0" type="radio" name="payment_method" id="stripe" value="stripe" required>
+                            <label class="form-check-label w-100 d-flex justify-content-between align-items-center ml-4" for="stripe">
+                                <span class="font-weight-bold">Stripe</span>
+                                <img alt="Stripe Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSrEDT3CoRGWmLuUJQYPrDAr7SVnONmhuuoLiIPn7GRk2FhXob7EQj2obNUAFT4tZzo48HKJ2v_xFqkYzTkTSMnZxiDELCQD7aU1E28_FWShYlZpVmI2hJ241x3OaO8XBz_8rLc8n5JoA_Pt5hVyQO34Qk39sljoAlkpPJFV4Iyl4uiozU0i34niyvAiyha1NaAB3QPmicGqetwrIgQ_gFjW4w1KG4vZgDAK5l45IC2583TxAn-b1dOTbEsNViLh7ndkOL3NiScv8" style="height: 24px;">
+                            </label>
+                        </div>
+
+                        <div class="form-check border rounded p-3 d-flex align-items-center mb-3">
+                            <input class="form-check-input ml-1 mt-0" type="radio" name="payment_method" id="razorpay" value="razorpay" required>
+                            <label class="form-check-label w-100 d-flex justify-content-between align-items-center ml-4" for="razorpay">
+                                <span class="font-weight-bold">Razorpay</span>
+                                <img alt="Razorpay Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDn9aMKGDGgQ7cHeEflJA0Bsf8V0WZ2K1n3iGBFivnmpILRxjbQOIqOKB3eyY2c1Wc6oM-Jhl3MGMYso_C4wxsXJQs1mu4fgIGEEf4EAswCfbVJLMi6AT819yRl8tEkGh7zPmMW5iM7ei9-Yp9XK77KeCI0aTQ57HfB5a63w7ITV97w6AxiSboiy8m6FZrhwYem9e6TJmEPuWquicHC6KhIkwfxm47knbwz15oaoe7-ZNzozl6sjRr5S-eIDFxfTjpBTtwAFv3qJNA" style="height: 24px;">
+                            </label>
+                        </div>
+                    </div>
+                    </div>
+            </div> </aside> <aside class="col-lg-5">
+    
+    <div class="card">
         <table class="table table-borderless table-shopping-cart">
             <thead class="text-muted">
                 <tr class="small text-uppercase">
@@ -108,16 +136,12 @@
         {% endfor %}
         </tbody>
         </table>
-		<div class="card-body">
-			<button type="submit" class="btn btn-primary btn-block"> Place Order </button>
-			<a href="{% url 'store' %}" class="btn btn-light btn-block">Continue Shopping</a>
-		</div>
-	</div> 
-	
-</aside> <!-- col.// -->
-
-</form>
-</div> <!-- row.// -->
-<!-- ============================ COMPONENT 1 END .// ================================= -->
-</section>
+        <div class="card-body">
+            <button type="submit" class="btn btn-primary btn-block"> Place Order </button>
+            <a href="{% url 'store' %}" class="btn btn-light btn-block">Continue Shopping</a>
+        </div>
+    </div> 
+    
+</aside> </form>
+</div> </section>
 {% endblock %}

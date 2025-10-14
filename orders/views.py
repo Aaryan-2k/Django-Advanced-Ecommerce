@@ -20,7 +20,6 @@ def place_order(request):
     for item in items:
         total+=item.product.price*item.quantity
     tax=(2*total)/100 # 2% tax
-
     if request.method=="POST":
         form=OrderForm(request.POST)
         if form.is_valid():
