@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
+from django.contrib.auth.decorators import login_required
 from .forms import OrderForm
 from .models import Order
 from cart.models import CartItem
@@ -6,7 +7,12 @@ from cart.views import get_cart
 from django.http import HttpResponse
 import datetime
 
-# Create your views here.
+#stripe payments
+from django.conf import settings
+from django.contrib.sites.shortcuts import get_current_site
+import stripe
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def place_order(request):
     current_user=request.user
@@ -21,6 +27,7 @@ def place_order(request):
         total+=item.product.price*item.quantity
     tax=(2*total)/100 # 2% tax
     if request.method=="POST":
+        payment=request.POST['payment_method']
         form=OrderForm(request.POST)
         if form.is_valid():
             data=Order()
@@ -39,7 +46,12 @@ def place_order(request):
             data.order_total=total+tax
             data.order_tax=tax
             data.save()
-            return render(request,'order/payments.html',{'order':data,'items':items})
+            if payment=='paypal':
+                return render(request,'order/paypal.html',{'order':data,'items':items})
+            elif payment=='stripe':
+                return redirect('stripe_payment_route')
+            else:
+                return render(request,'order/razor.html',{'order':data,'items':items})
         else:
             messages.warning(request, 'Please fill valid entries in the form')
             return render(request,'store/checkout.html')
@@ -47,3 +59,41 @@ def place_order(request):
 
 def payment(request):
     return render(request,'order/payments.html')
+
+@login_required
+def stripe_payment(request):
+    cart=get_cart(request)
+    products_incart=CartItem.objects.filter(cart=cart)
+
+    all_the_items=[]
+    for item in products_incart:
+        print(f'https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/media/{item.product.image}')
+        all_the_items.append({
+                  'price_data': {
+                    'currency': 'usd',
+                    'unit_amount': item.product.price * 100,
+                    'product_data': {
+                        'name': item.product.product_name,
+                        'images': [f'https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/media/{item.product.image}']
+                    },
+                },
+                'quantity': item.quantity,
+            })
+    print(all_the_items)
+
+    # Stripe Configurtion
+    checkout_session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=all_the_items,
+        metadata = {
+            'user_email': request.user.email,
+            'cart_id': cart.id,
+        },
+        mode='payment',
+        success_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/success',
+        cancel_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/failed',
+    )
+    return redirect(checkout_session.url)
+    
+def payment_complete(request):
+    return render(request,'order/success.html')
