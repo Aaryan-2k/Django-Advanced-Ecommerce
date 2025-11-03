@@ -14,6 +14,19 @@ import stripe
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+# palpal integration
+import paypalrestsdk
+from django.conf import settings
+from django.shortcuts import render, redirect
+from django.urls import reverse
+
+paypalrestsdk.configure({
+    "mode": "sandbox",  # Change to "live" for production
+    "client_id": settings.PAYPAL_CLIENT_ID,
+    "client_secret": settings.PAYPAL_SECRET,
+})
+
+
 def place_order(request):
     current_user=request.user
     cart=get_cart(request)
@@ -49,7 +62,7 @@ def place_order(request):
             if payment=='paypal':
                 return render(request,'order/paypal.html',{'order':data,'items':items})
             elif payment=='stripe':
-                return redirect('stripe_payment_route')
+                return render(request,'order/stripe.html',{'order':data,'items':items})
             else:
                 return render(request,'order/razor.html',{'order':data,'items':items})
         else:
@@ -65,21 +78,20 @@ def stripe_payment(request):
     cart=get_cart(request)
     products_incart=CartItem.objects.filter(cart=cart)
 
+    # inserting the details about all the cart items in the list
     all_the_items=[]
     for item in products_incart:
-        print(f'https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/media/{item.product.image}')
         all_the_items.append({
                   'price_data': {
                     'currency': 'usd',
-                    'unit_amount': item.product.price * 100,
+                    'unit_amount': item.product.price * 100, #we need to pass the amount in cents in stripe
                     'product_data': {
                         'name': item.product.product_name,
-                        'images': [f'https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/media/{item.product.image}']
+                        'images': [item.product.image]
                     },
                 },
                 'quantity': item.quantity,
             })
-    print(all_the_items)
 
     # Stripe Configurtion
     checkout_session = stripe.checkout.Session.create(
@@ -90,10 +102,51 @@ def stripe_payment(request):
             'cart_id': cart.id,
         },
         mode='payment',
-        success_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/success',
-        cancel_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/failed',
+        success_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/success', # if payment is succesfull redirects to this link
+        cancel_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/failed', # else this link
     )
     return redirect(checkout_session.url)
+
+def paypal_payment(request):
+    payment = paypalrestsdk.Payment({
+        "intent": "sale",
+        "payer": {
+            "payment_method": "paypal",
+        },
+        "redirect_urls": {
+            "return_url": request.build_absolute_uri(reverse('execute_payment_route')),
+            "cancel_url": request.build_absolute_uri(reverse('payment_failed')),
+        },
+        "transactions": [
+            {
+                "amount": {
+                    "total": "10.00",  # Total amount in USD
+                    "currency": "USD",
+                },
+                "description": "Payment for Product/Service",
+            }
+        ],
+    })
+
+    if payment.create():
+        return redirect(payment.links[1].href)  # Redirect to PayPal for payment
+    else:
+        return render(request, 'order/failed.html')
+
+def execute_payment(request):
+    payment_id = request.GET.get('paymentId')
+    payer_id = request.GET.get('PayerID')
+
+    payment = paypalrestsdk.Payment.find(payment_id)
+
+    if payment.execute({"payer_id": payer_id}):
+        return render(request, 'order/success.html')
+    else:
+        return render(request, 'order/failed.html')
     
 def payment_complete(request):
     return render(request,'order/success.html')
+
+def payment_failed(request):
+    return render(request, 'order/failed.html')
+
