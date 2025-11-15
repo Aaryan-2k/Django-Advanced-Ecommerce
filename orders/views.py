@@ -1,73 +1,72 @@
 from django.shortcuts import render,redirect
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from .forms import OrderForm
-from .models import Order
+from .models import Order, Payment, OrderProduct
+from store.models import Product
 from cart.models import CartItem
 from cart.views import get_cart
-from django.http import HttpResponse
 import datetime
+import json
 
-#stripe payments
+# stripe payments
 from django.conf import settings
-from django.contrib.sites.shortcuts import get_current_site
 import stripe
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
-# palpal integration
-import paypalrestsdk
-from django.conf import settings
-from django.shortcuts import render, redirect
+stripe.api_key=settings.STRIPE_SECRET_KEY
 from django.urls import reverse
 
-paypalrestsdk.configure({
-    "mode": "sandbox",  # Change to "live" for production
-    "client_id": settings.PAYPAL_CLIENT_ID,
-    "client_secret": settings.PAYPAL_SECRET,
-})
-
+def get_cart_total(cart):
+    items=CartItem.objects.filter(cart=cart)
+    total=0
+    for item in items:
+        total+=item.product.price * item.quantity
+    tax=(2*total)/100  # 2% tax
+    return total,tax,items
 
 def place_order(request):
     current_user=request.user
-    cart=get_cart(request)
-    items=CartItem.objects.filter(cart=cart)
+    cart = get_cart(request)
+    items = CartItem.objects.filter(cart=cart)
+    
     if items.count()<1:
         messages.warning(request, 'Cart is empty')
         return redirect('checkout_route')
-    total=0
-    tax=0
-    for item in items:
-        total+=item.product.price*item.quantity
-    tax=(2*total)/100 # 2% tax
+    
+    total, tax,items=get_cart_total(cart)
+    
     if request.method=="POST":
-        payment=request.POST['payment_method']
-        form=OrderForm(request.POST)
+        payment_method = request.POST.get('payment_method', 'paypal')
+        form = OrderForm(request.POST)
+        
         if form.is_valid():
-            data=Order()
-            data.user=current_user
-            data.order_id=str(total)+str(tax)+str(current_user.id)+str(datetime.datetime.now())
-            data.first_name=form.cleaned_data['first_name']
-            data.last_name=form.cleaned_data['last_name']
-            data.address_line_1=form.cleaned_data['address_line_1']
-            data.address_line_2=form.cleaned_data['address_line_2']
-            data.city=form.cleaned_data['city']
-            data.state=form.cleaned_data['state']
-            data.country=form.cleaned_data['country']
-            data.phone=form.cleaned_data['phone']
-            data.email=form.cleaned_data['email']
-            data.ip=request.META.get('REMOTE_ADDR')
-            data.order_total=total+tax
-            data.order_tax=tax
+            data = Order()
+            data.user = current_user
+            data.order_id = str(total) + str(tax) + str(current_user.id) + str(datetime.datetime.now())
+            data.first_name = form.cleaned_data['first_name']
+            data.last_name = form.cleaned_data['last_name']
+            data.address_line_1 = form.cleaned_data['address_line_1']
+            data.address_line_2 = form.cleaned_data['address_line_2']
+            data.city = form.cleaned_data['city']
+            data.state = form.cleaned_data['state']
+            data.country = form.cleaned_data['country']
+            data.phone = form.cleaned_data['phone']
+            data.email = form.cleaned_data['email']
+            data.ip = request.META.get('REMOTE_ADDR')
+            data.order_total = total + tax
+            data.order_tax = tax
             data.save()
-            if payment=='paypal':
-                return render(request,'order/paypal.html',{'order':data,'items':items})
-            elif payment=='stripe':
-                return render(request,'order/stripe.html',{'order':data,'items':items})
+            
+            if payment_method == 'paypal':
+                return render(request, 'order/paypal.html',{'order': data,'items': items,'subtotal': total,'tax': tax,'grand_total': total + tax,})
+            elif payment_method == 'stripe':
+                return render(request, 'order/stripe.html',{'order': data,'items': items,'subtotal': total,'tax': tax,'grand_total': total + tax})
             else:
-                return render(request,'order/razor.html',{'order':data,'items':items})
+                return render(request, 'order/razor.html',{'order': data,'items': items,'subtotal': total,'tax': tax,'grand_total': total + tax})
         else:
             messages.warning(request, 'Please fill valid entries in the form')
-            return render(request,'store/checkout.html')
+            return render(request, 'store/checkout.html')
     return render(request, 'order/')
 
 def payment(request):
@@ -102,51 +101,86 @@ def stripe_payment(request):
             'cart_id': cart.id,
         },
         mode='payment',
-        success_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/success', # if payment is succesfull redirects to this link
-        cancel_url='https://legendary-pancake-q7qx44q5v4xxcx6qw.github.dev/order/failed', # else this link
+        success_url='http://localhost:8000/order/success', # if payment is succesfull redirects to this link
+        cancel_url='http://localhost:8000/order/failed', # else this link
     )
     return redirect(checkout_session.url)
 
 def paypal_payment(request):
-    payment = paypalrestsdk.Payment({
-        "intent": "sale",
-        "payer": {
-            "payment_method": "paypal",
-        },
-        "redirect_urls": {
-            "return_url": request.build_absolute_uri(reverse('execute_payment_route')),
-            "cancel_url": request.build_absolute_uri(reverse('payment_failed')),
-        },
-        "transactions": [
-            {
-                "amount": {
-                    "total": "10.00",  # Total amount in USD
-                    "currency": "USD",
-                },
-                "description": "Payment for Product/Service",
-            }
-        ],
-    })
+    if request.method == 'POST':
+        try:
+            # Parse the JSON data sent from the frontend
+            data=json.loads(request.body)
+            payment_id=data.get('id')
 
-    if payment.create():
-        return redirect(payment.links[1].href)  # Redirect to PayPal for payment
-    else:
-        return render(request, 'order/failed.html')
+            cart = get_cart(request)
+            items = CartItem.objects.filter(cart=cart)
+            
+            if not items.exists():
+                return JsonResponse({'status': 'error', 'message': 'Cart is empty'}, status=400)
+            
+            total,tax,_= get_cart_total(cart)
+            grand_total=total +tax
+    
+            # Create payment record
+            payment = Payment.objects.create(
+                user=request.user,
+                payment_id=payment_id,
+                payment_method='paypal',
+                amount=str(grand_total),
+                status='completed'
+            )
+            
+            order = Order.objects.filter(user=request.user).latest('created_at')
+            order.payment = payment
+            order.is_ordered = True
+            order.save()
+            
+            # Move cart items to ordered items
+            
+            for item in items:
+                ordered_items=OrderProduct()
+                ordered_items.user=request.user
+                ordered_items.product=item.product
+                ordered_items.payment=payment
+                ordered_items.order=order
+                ordered_items.quantity=item.quantity
+                ordered_items.product_price=item.product.price
+                ordered_items.ordered=True
+                items_variation= item.variation.all()
+                ordered_items.save()
+                if items_variation.exists():
+                    ordered_items.variation.set(items_variation)
+                ordered_items.save()
 
-def execute_payment(request):
-    payment_id = request.GET.get('paymentId')
-    payer_id = request.GET.get('PayerID')
+                # update stock
+                product_ordered=Product.objects.get(id=item.product.id)
+                product_ordered.stock-=item.quantity
+                product_ordered.save()
 
-    payment = paypalrestsdk.Payment.find(payment_id)
+            CartItem.objects.filter(cart=cart).delete()
+            
 
-    if payment.execute({"payer_id": payer_id}):
-        return render(request, 'order/success.html')
-    else:
-        return render(request, 'order/failed.html')
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Payment successful',
+                'redirect_url': reverse('payment_complete'),
+                'order_id': order.order_id,
+                'transaction_id': payment.payment_id,
+            })
+        
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            print(f"PayPal Payment Error: {str(e)}")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
     
 def payment_complete(request):
-    return render(request,'order/success.html')
+    order_id=request.GET.get('order_id')
+    transaction_id=request.GET.get('transaction_id')
+    return render(request, 'order/success.html', {'order_id': order_id, 'transaction_id': transaction_id})
 
 def payment_failed(request):
     return render(request, 'order/failed.html')
-

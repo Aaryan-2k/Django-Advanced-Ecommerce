@@ -21,8 +21,6 @@ from cart.models import CartItem,Cart
 # keeping the user flow
 import requests
 
-
-# Create your views here.
 def login(request):
     if request.method=='POST':
         email=request.POST['email']

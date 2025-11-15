@@ -13,6 +13,7 @@
 
 <!-- jQuery -->
 <script src={% static "js/jquery-2.0.0.min.js" %} type="text/javascript"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AbWGQMPuZMNao0B3REqcAfNsz4CXAh8QR8Xv1pq_y9Cv2atn0_kLBFmkeLp8HRxjeweRdsPjKYYJ1FMr&currency=USD"></script>
 
 <!-- Bootstrap4 files-->
 <script src={% static "js/bootstrap.bundle.min.js" %} type="text/javascript"></script>
@@ -38,6 +39,38 @@ $(document).ready(function() {
 }); 
 // jquery end
 </script>
+<style>
+        :root {
+            --primary-green: #13ec5b; /* Matching the primary color */
+            --success-bg: #f6f8f6;
+        }
+
+        /* Equivalent to the Tailwind success icon styling */
+        .icon-success-circle {
+            font-size: 3rem; /* Adjusted for visual appeal in Bootstrap */
+            color: var(--primary-green);
+            background-color: rgba(19, 236, 91, 0.2); /* 20% opacity */
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        /* Custom green button style */
+        .btn-custom-primary {
+            background-color: #0332aa;
+            color: #ffffff;
+            border-color: #00123e;
+            font-weight: bold;
+        }
+        .btn-custom-primary:hover {
+            background-color: #00278b;
+            color: #ffffff;
+            border-color: #00123e;
+        }
+    </style>
 
 </head>
 <body>
