@@ -1,9 +1,9 @@
 from django.shortcuts import render,redirect
 from .forms import RegistrationForm
 from .models import Account
-from django.http import HttpResponse
 from django.contrib import messages,auth
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
 
 # activation email imports
 from django.contrib.sites.shortcuts import get_current_site
@@ -20,6 +20,12 @@ from cart.models import CartItem,Cart
 
 # keeping the user flow
 import requests
+from orders.models import Order
+
+# edit profile imports
+from .forms import ProfileForm, AccountForm
+from .models import UserProfile
+
 
 def login(request):
     if request.method=='POST':
@@ -155,7 +161,7 @@ def reset_password(request, uidb64, token):
         messages.error(request,'Password Reset Link has expired')
         return render(request,'account/forgotPassword.html')
 
-def change_password(request):
+def reset_password(request):
     if request.method=='POST':
         password=request.POST['password']
         confirmpassword=request.POST['confirmpassword']
@@ -173,4 +179,63 @@ def change_password(request):
 
 @login_required(login_url='login_route')
 def dashboard(request):
-    return render(request, 'store/dashboard.html')
+    try:
+        userprofile=UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        userprofile=UserProfile.objects.create(user=request.user)
+    order_count=Order.objects.filter(user=request.user, is_ordered=True).count()
+    return render(request, 'store/dashboard.html',{'order_count':order_count,'userprofile': userprofile,})
+
+def orders_list(request):
+    orders = Order.objects.filter(user=request.user, is_ordered=True).order_by('-created_at')
+    return render(request, 'store/orders_list.html', {'orders':orders})
+
+def editprofile(request):
+    try:
+        userprofile=UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        userprofile=UserProfile.objects.create(user=request.user)
+    if request.method=="POST":
+        acc_form=AccountForm(request.POST, instance=request.user)
+        prof_form=ProfileForm(request.POST, request.FILES, instance=userprofile)
+
+        if acc_form.is_valid() and prof_form.is_valid():
+            acc_form.save()
+            prof_form.save()
+            messages.success(request, 'Your profile has been updated successfully.')
+            return redirect('edit_profile_route')
+        else:
+            messages.error(request, 'Please correct the error below.')
+            return redirect('edit_profile_route')
+    else:
+        acc_form=AccountForm(instance=request.user)
+        prof_form=ProfileForm(instance=userprofile)
+        context={
+            'account_form': acc_form,
+            'profile_form': prof_form,
+            'userprofile': userprofile,
+        }
+        return render(request, 'store/profile_edit.html', context)
+    
+@login_required(login_url='login_route')
+def change_password(request):
+    if request.method=='POST':
+        current_password=request.POST['current_password']
+        new_password=request.POST['new_password']
+        confirm_password=request.POST['confirm_new_password']
+        user=Account.objects.get(email=request.user.email)
+        if new_password==confirm_password:
+            success=user.check_password(current_password)
+            if success:
+                user.set_password(new_password)
+                user.save()
+                messages.success(request, 'Your password has been updated successfully.')
+                return redirect('change_password_route')
+            else:
+                messages.warning(request, 'Please enter valid current password.')
+                return redirect('change_password_route')
+        else:
+            messages.warning(request, 'New password and confirm password does not match.')
+            return redirect('change_password_route')
+    return render(request, 'store/change_password.html')
+    

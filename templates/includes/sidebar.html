@@ -1,0 +1,6 @@
+<ul class="list-group">
+			<a class="list-group-item {% if '/dashboard/' in request.path %} active {% endif %}" href="{% url 'dashboard_route' %}"> Dashboard </a>
+			<a class="list-group-item {% if '/orders/' in request.path %} active {% endif %}" href="{% url 'orders_list_route' %}">Order History </a>
+			<a class="list-group-item {% if '/editprofile/' in request.path %} active {% endif %}" href="{% url 'edit_profile_route' %}">Profile Settings </a>
+			<a class="list-group-item {% if 'changepassword/' in request.path %}active{% endif %}" href="{% url 'change_password_route' %}">Security</a>
+		</ul>

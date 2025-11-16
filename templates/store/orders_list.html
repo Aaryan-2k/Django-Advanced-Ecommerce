@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<section class="section-conten padding-y bg">
+
+<div class="container">
+	<div class="row">
+	<aside class="col-md-3">
+		<!--   SIDEBAR   -->
+		{% include 'includes/sidebar.html' %}
+		<br>
+		<a class="btn btn-light btn-block" href="{% url 'logout_route' %}"> <i class="fa fa-power-off"></i> <span class="text">Log out</span> </a> 
+		<!--   SIDEBAR .//END   -->
+	</aside>
+	<main class="col-md-9">
+		<article class="card">
+		<header class="card-header">
+			<strong class="d-inline-block mr-3">Orders History</strong>
+		</header>
+		<div class="card-body">
+			<table class="table table-hover">
+        <thead>
+            <tr>
+            <th scope="col">#Order ID</th>
+            <th scope="col">Billing Name</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Ordered at</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in orders %}
+            <tr>
+            <th scope="row">{{item.order_id}}</th>
+            <td>{{item.first_name}} {{item.last_name}}</td>
+            <td><strong>${{item.order_total}}</strong></td>
+            <td>{{item.updated_at}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+		</div>
+		</article> 
+	</main>
+</div> 
+</div>
+</section>
+
+{% endblock %}
